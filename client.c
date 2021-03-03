@@ -1,4 +1,4 @@
-// ./client server_address port_number
+// ./client server_address port_number username
 
 #include <stdio.h>
 #include <string.h>
@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
-#define ARG_NUMBER 3
+#define ARG_NUMBER 4
 
 int main(int argc, char *argv[])
 {
@@ -16,7 +16,8 @@ int main(int argc, char *argv[])
 
     if (argc != ARG_NUMBER)
     {
-        printf("Usage: %s server_address port_number\n", argv[0]);
+        printf("Usage: %s server_address port_number username\n", argv[0]);
+        exit(1);
     }
 
     // create the socket
@@ -37,6 +38,9 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    // send the client username
+    write(serverfd, argv[3], strlen(argv[3]));
+
     // constantly send messages to the server
     while (1)
     {
@@ -45,7 +49,8 @@ int main(int argc, char *argv[])
         // read MUST be done with fgets
         fgets(message, 255, stdin);
 
-        if (write(serverfd, message, 255) < 0)
+        // send the message
+        if (write(serverfd, message, strlen(message)) < 0)
         {
             printf("Failed to send the message!\n");
         }

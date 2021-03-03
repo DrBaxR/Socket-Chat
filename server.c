@@ -46,27 +46,38 @@ int main(int argc, char *argv[])
 
     // accept connections
     socklen_t size = sizeof(struct sockaddr_in);
-    if ((clientfd = accept(serverfd, (struct sockaddr *)&client, &size)) < 0)
-    {
-        fprintf(stderr, "Error: Failed to accept connection!\n");
-        exit(1);
-    }
 
-    while (1)
+    while ((clientfd = accept(serverfd, (struct sockaddr *)&client, &size)))
     {
-        int n;
-        char buffer[255];
-
-        bzero(buffer, 255);
-        if ((n = read(clientfd, buffer, 255) < 0))
+        if (clientfd < 0)
         {
-            fprintf(stderr, "Error: Read failed!\n");
+            fprintf(stderr, "Error: Failed to accept connection!\n");
             exit(1);
         }
-        else
-        {
-            printf("%s", buffer);
+
+        int n;
+        char buffer[256];
+        char username[256];
+
+        bzero(username, 255);
+
+        if((n = read(clientfd, username, 255)) < 0) {
+            printf("Failed to read the username!\n");
+        } else {
+            printf("%s connected to the room!\n", username);
         }
+        
+        while((n = read(clientfd, buffer, 255))) {
+            if(n < 0)
+                printf("Failed to receive message!\n");
+            else 
+                printf("%s: %s", username, buffer);
+            
+            bzero(buffer, 255);
+        }
+
+        printf("%s disconnected from the room!\n", username);
+
     }
 
     return 0;
