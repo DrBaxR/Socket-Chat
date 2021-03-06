@@ -15,6 +15,18 @@ int client_fds[1000];
 pthread_t thread_ids[1000];
 int client_number = 0;
 
+void log_done(char* string) {
+    printf("\033[1;32mDONE:\033[0m %s\n", string);
+}
+
+void log_error(char* string) {
+    printf("\033[1;31mERROR:\033[0m %s\n", string);
+}
+
+void log_name(char* string) {
+    printf("\033[1;33m%s:\033[0m ", string);
+}
+
 void *client_handler(void *args)
 {
     int client_index = *(int *)args;
@@ -31,7 +43,7 @@ void *client_handler(void *args)
     }
     else
     {
-        printf("%s connected to the room!\n", username);
+        printf("\033[1;34m%s\033[0m\033[0;34m connected to the room!\033[0m\n", username);
     }
 
     // read user messages
@@ -41,14 +53,16 @@ void *client_handler(void *args)
     {
         if (n < 0)
             printf("Failed to receive message!\n");
-        else
-            printf("%s: %s", username, buffer);
+        else {
+            log_name(username);
+            printf("%s", buffer);
+        }
 
         bzero(buffer, 255);
     }
 
     // print message when user disconnects
-    printf("%s disconnected from the room!\n", username);
+    printf("\033[1;35m%s\033[0m\033[0;35m disconnected from the room!\033[0m\n", username);
 
     return NULL;
 }
@@ -68,9 +82,11 @@ int main(int argc, char *argv[])
     serverfd = socket(AF_INET, SOCK_STREAM, 0);
     if (serverfd < 0)
     {
-        fprintf(stderr, "Error: Failed to create the socket!\n");
+        log_error("Failed to create the socket!");
         exit(1);
     }
+
+    log_done("Created socket.");
 
     // bind the socket
     int port_number = atoi(argv[1]);
@@ -80,12 +96,16 @@ int main(int argc, char *argv[])
 
     if (bind(serverfd, (struct sockaddr *)&server, sizeof(server)) < 0)
     {
-        fprintf(stderr, "Error: Failed to bind the server socket!\n");
+        log_error("Failed to bind the server socket!");
         exit(1);
     }
 
+    log_done("Bound server socket.");
+
     // listen for connections
     listen(serverfd, MAX_CONNECTIONS);
+
+    log_done("Server listening for connections...");
 
     // accept connections
     socklen_t size = sizeof(struct sockaddr_in);
@@ -97,7 +117,7 @@ int main(int argc, char *argv[])
 
         if (clientfd < 0)
         {
-            fprintf(stderr, "Error: Failed to accept connection!\n");
+            log_error("Failed to accept connection!");
             exit(1);
         }
 
