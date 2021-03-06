@@ -15,15 +15,18 @@ int client_fds[1000];
 pthread_t thread_ids[1000];
 int client_number = 0;
 
-void log_done(char* string) {
+void log_done(char *string)
+{
     printf("\033[1;32mDONE:\033[0m %s\n", string);
 }
 
-void log_error(char* string) {
+void log_error(char *string)
+{
     printf("\033[1;31mERROR:\033[0m %s\n", string);
 }
 
-void log_name(char* string) {
+void log_name(char *string)
+{
     printf("\033[1;33m%s:\033[0m ", string);
 }
 
@@ -44,6 +47,19 @@ void *client_handler(void *args)
     else
     {
         printf("\033[1;34m%s\033[0m\033[0;34m connected to the room!\033[0m\n", username);
+
+        char message[256] = "";
+        strcpy(message, username);
+        strcat(message, " connected to the room!\n");
+
+        int i;
+        for (i = 0; i < client_number; ++i)
+        {
+            if (i != client_index)
+            {
+                write(client_fds[i], message, strlen(message));
+            }
+        }
     }
 
     // read user messages
@@ -53,9 +69,24 @@ void *client_handler(void *args)
     {
         if (n < 0)
             printf("Failed to receive message!\n");
-        else {
+        else
+        {
             log_name(username);
             printf("%s", buffer);
+
+            // send the received message to all the other clients
+            int i;
+            for (i = 0; i < client_number; ++i)
+            {
+                if (i != client_index)
+                {
+                    char message[256] = "";
+                    strcpy(message, username);
+                    strcat(message, ": ");
+                    strcat(message, buffer);
+                    write(client_fds[i], message, strlen(message));
+                }
+            }
         }
 
         bzero(buffer, 255);
@@ -63,6 +94,20 @@ void *client_handler(void *args)
 
     // print message when user disconnects
     printf("\033[1;35m%s\033[0m\033[0;35m disconnected from the room!\033[0m\n", username);
+
+    char message[256] = "";
+
+    strcpy(message, username);
+    strcat(message, " disconnected from the room!\n");
+
+    int i;
+    for (i = 0; i < client_number; ++i)
+    {
+        if (i != client_index)
+        {
+            write(client_fds[i], message, strlen(message));
+        }
+    }
 
     return NULL;
 }
@@ -112,9 +157,6 @@ int main(int argc, char *argv[])
 
     while ((clientfd = accept(serverfd, (struct sockaddr *)&client, &size)))
     {
-        // TODO: cand primeste un mesaj, arata mesajul in server si trimite mesajul primit la toti ceilalti clienti (modificari si la server si la client)
-        // TODO: dat join la thread-uri cand se termina
-
         if (clientfd < 0)
         {
             log_error("Failed to accept connection!");

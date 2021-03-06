@@ -6,12 +6,66 @@
 #include <sys/socket.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 
 #define ARG_NUMBER 4
 
+pthread_t thread_id;
+int serverfd;
+
+void log_done(char *string)
+{
+    printf("\033[1;32mDONE:\033[0m %s\n", string);
+}
+
+void log_error(char *string)
+{
+    printf("\033[1;31mERROR:\033[0m %s\n", string);
+}
+
+void log_name(char *string)
+{
+    printf("\033[1;33m%s:\033[0m ", string);
+}
+
+void *server_read_handler(void *args)
+{
+    // constantly read data from the server (username first, messsage second <- for each message)
+    int n1, n2;
+    char username[256];
+    char message[256];
+
+    bzero(username, 256);
+    while ((n1 = read(serverfd, username, 256)) > 0)
+    {
+        printf("%s", username);
+        // if ((n2 = read(serverfd, message, 256)) < 0)
+        // {
+        //     log_error("Failed to read message from server!");
+        // }
+        // else
+        // {
+        //     printf("Message: %s", message);
+            
+        //     username[strlen(username) - 1] = '\0';
+        //     message[strlen(message) - 1] = '\0';
+
+        //     log_name(username);
+        //     printf("%s\n", message);
+
+        //     bzero(username, 256);
+        //     bzero(message, 256);
+        // }
+
+        bzero(username, 256);
+        bzero(message, 256);
+    }
+
+    return NULL;
+}
+
 int main(int argc, char *argv[])
 {
-    int serverfd;
     struct sockaddr_in server;
 
     if (argc != ARG_NUMBER)
@@ -40,6 +94,8 @@ int main(int argc, char *argv[])
 
     // send the client username
     write(serverfd, argv[3], strlen(argv[3]));
+
+    pthread_create(&thread_id, NULL, server_read_handler, NULL);
 
     // constantly send messages to the server
     while (1)
