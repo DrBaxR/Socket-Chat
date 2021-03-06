@@ -6,9 +6,52 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define ARG_NUMBER 2
 #define MAX_CONNECTIONS 5
+
+int client_fds[1000];
+pthread_t thread_ids[1000];
+int client_number = 0;
+
+void *client_handler(void *args)
+{
+    int client_index = *(int *)args;
+
+    // read username
+    int n;
+    char username[256];
+
+    bzero(username, 256);
+
+    if ((n = read(client_fds[client_index], username, 255)) < 0)
+    {
+        printf("Failed to read the username!\n");
+    }
+    else
+    {
+        printf("%s connected to the room!\n", username);
+    }
+
+    // read user messages
+    char buffer[256];
+
+    while ((n = read(client_fds[client_index], buffer, 255)))
+    {
+        if (n < 0)
+            printf("Failed to receive message!\n");
+        else
+            printf("%s: %s", username, buffer);
+
+        bzero(buffer, 255);
+    }
+
+    // print message when user disconnects
+    printf("%s disconnected from the room!\n", username);
+
+    return NULL;
+}
 
 int main(int argc, char *argv[])
 {
@@ -49,35 +92,23 @@ int main(int argc, char *argv[])
 
     while ((clientfd = accept(serverfd, (struct sockaddr *)&client, &size)))
     {
+        // TODO: cand primeste un mesaj, arata mesajul in server si trimite mesajul primit la toti ceilalti clienti (modificari si la server si la client)
+        // TODO: dat join la thread-uri cand se termina
+
         if (clientfd < 0)
         {
             fprintf(stderr, "Error: Failed to accept connection!\n");
             exit(1);
         }
 
-        int n;
-        char buffer[256];
-        char username[256];
+        // save the client file descriptor in the array
+        client_fds[client_number] = clientfd;
 
-        bzero(username, 255);
+        int *index_pointer = (int *)malloc(sizeof(int));
+        *index_pointer = client_number;
 
-        if((n = read(clientfd, username, 255)) < 0) {
-            printf("Failed to read the username!\n");
-        } else {
-            printf("%s connected to the room!\n", username);
-        }
-        
-        while((n = read(clientfd, buffer, 255))) {
-            if(n < 0)
-                printf("Failed to receive message!\n");
-            else 
-                printf("%s: %s", username, buffer);
-            
-            bzero(buffer, 255);
-        }
-
-        printf("%s disconnected from the room!\n", username);
-
+        pthread_create(&thread_ids[client_number], NULL, client_handler, index_pointer);
+        client_number++;
     }
 
     return 0;
