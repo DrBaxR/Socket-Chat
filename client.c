@@ -13,52 +13,23 @@
 pthread_t thread_id;
 int serverfd;
 
-void log_done(char *string)
-{
-    printf("\033[1;32mDONE:\033[0m %s\n", string);
-}
-
 void log_error(char *string)
 {
     printf("\033[1;31mERROR:\033[0m %s\n", string);
 }
 
-void log_name(char *string)
-{
-    printf("\033[1;33m%s:\033[0m ", string);
-}
-
 void *server_read_handler(void *args)
 {
     // constantly read data from the server (username first, messsage second <- for each message)
-    int n1, n2;
-    char username[256];
-    char message[256];
+    int n;
+    char buffer[256];
 
-    bzero(username, 256);
-    while ((n1 = read(serverfd, username, 256)) > 0)
+    bzero(buffer, 256);
+    while ((n = read(serverfd, buffer, 256)) > 0)
     {
-        printf("%s", username);
-        // if ((n2 = read(serverfd, message, 256)) < 0)
-        // {
-        //     log_error("Failed to read message from server!");
-        // }
-        // else
-        // {
-        //     printf("Message: %s", message);
-            
-        //     username[strlen(username) - 1] = '\0';
-        //     message[strlen(message) - 1] = '\0';
+        printf("%s", buffer);
 
-        //     log_name(username);
-        //     printf("%s\n", message);
-
-        //     bzero(username, 256);
-        //     bzero(message, 256);
-        // }
-
-        bzero(username, 256);
-        bzero(message, 256);
+        bzero(buffer, 256);
     }
 
     return NULL;
@@ -77,7 +48,7 @@ int main(int argc, char *argv[])
     // create the socket
     if ((serverfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        fprintf(stderr, "Error: Failed to create the socket!\n");
+        log_error("Failed to create the socket!");
         exit(1);
     }
 
@@ -88,7 +59,7 @@ int main(int argc, char *argv[])
 
     if (connect(serverfd, (struct sockaddr *)&server, sizeof(server)) < 0)
     {
-        fprintf(stderr, "Error: Failed to connect to the remote server!\n");
+        log_error("Failed to connect to the remote server!");
         exit(1);
     }
 
@@ -108,7 +79,7 @@ int main(int argc, char *argv[])
         // send the message
         if (write(serverfd, message, strlen(message)) < 0)
         {
-            printf("Failed to send the message!\n");
+            log_error("Failed to send the message!");
         }
     }
 

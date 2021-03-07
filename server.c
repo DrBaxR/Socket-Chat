@@ -30,6 +30,21 @@ void log_name(char *string)
     printf("\033[1;33m%s:\033[0m ", string);
 }
 
+void format_message(char* username, char* message, char* output) {
+    output[0] = '\0';
+    sprintf(output, "\033[1;33m%s:\033[0m %s", username, message);
+}
+
+void format_join_message(char* username, char* output) {
+    output[0] = '\0';
+    sprintf(output, "\033[1;34m%s\033[0m\033[0;34m connected to the room!\033[0m\n", username);
+}
+
+void format_leave_message(char* username, char* output) {
+    output[0] = '\0';
+    sprintf(output, "\033[1;35m%s\033[0m\033[0;35m disconnected from the room!\033[0m\n", username);
+}
+
 void *client_handler(void *args)
 {
     int client_index = *(int *)args;
@@ -46,18 +61,16 @@ void *client_handler(void *args)
     }
     else
     {
-        printf("\033[1;34m%s\033[0m\033[0;34m connected to the room!\033[0m\n", username);
-
-        char message[256] = "";
-        strcpy(message, username);
-        strcat(message, " connected to the room!\n");
+        char connected_message[256] = "";
+        format_join_message(username, connected_message);
+        printf("%s", connected_message);
 
         int i;
         for (i = 0; i < client_number; ++i)
         {
             if (i != client_index)
             {
-                write(client_fds[i], message, strlen(message));
+                write(client_fds[i], connected_message, strlen(connected_message));
             }
         }
     }
@@ -81,9 +94,8 @@ void *client_handler(void *args)
                 if (i != client_index)
                 {
                     char message[256] = "";
-                    strcpy(message, username);
-                    strcat(message, ": ");
-                    strcat(message, buffer);
+
+                    format_message(username, buffer, message);
                     write(client_fds[i], message, strlen(message));
                 }
             }
@@ -93,12 +105,10 @@ void *client_handler(void *args)
     }
 
     // print message when user disconnects
-    printf("\033[1;35m%s\033[0m\033[0;35m disconnected from the room!\033[0m\n", username);
+    char message[256];
+    format_leave_message(username, message);
 
-    char message[256] = "";
-
-    strcpy(message, username);
-    strcat(message, " disconnected from the room!\n");
+    printf("%s", message);
 
     int i;
     for (i = 0; i < client_number; ++i)
@@ -108,6 +118,8 @@ void *client_handler(void *args)
             write(client_fds[i], message, strlen(message));
         }
     }
+
+    close(client_fds[client_index]);
 
     return NULL;
 }
