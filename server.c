@@ -30,19 +30,34 @@ void log_name(char *string)
     printf("\033[1;33m%s:\033[0m ", string);
 }
 
-void format_message(char* username, char* message, char* output) {
+void format_message(char *username, char *message, char *output)
+{
     output[0] = '\0';
     sprintf(output, "\033[1;33m%s:\033[0m %s", username, message);
 }
 
-void format_join_message(char* username, char* output) {
+void format_join_message(char *username, char *output)
+{
     output[0] = '\0';
     sprintf(output, "\033[1;34m%s\033[0m\033[0;34m connected to the room!\033[0m\n", username);
 }
 
-void format_leave_message(char* username, char* output) {
+void format_leave_message(char *username, char *output)
+{
     output[0] = '\0';
     sprintf(output, "\033[1;35m%s\033[0m\033[0;35m disconnected from the room!\033[0m\n", username);
+}
+
+void broadcast_message(char *message, int client_index)
+{
+    int i;
+    for (i = 0; i < client_number; ++i)
+    {
+        if (i != client_index && client_fds[i] != -1)
+        {
+            write(client_fds[i], message, strlen(message));
+        }
+    }
 }
 
 void *client_handler(void *args)
@@ -65,14 +80,7 @@ void *client_handler(void *args)
         format_join_message(username, connected_message);
         printf("%s", connected_message);
 
-        int i;
-        for (i = 0; i < client_number; ++i)
-        {
-            if (i != client_index)
-            {
-                write(client_fds[i], connected_message, strlen(connected_message));
-            }
-        }
+        broadcast_message(connected_message, client_index);
     }
 
     // read user messages
@@ -87,18 +95,11 @@ void *client_handler(void *args)
             log_name(username);
             printf("%s", buffer);
 
-            // send the received message to all the other clients
-            int i;
-            for (i = 0; i < client_number; ++i)
-            {
-                if (i != client_index)
-                {
-                    char message[256] = "";
+            char message[256] = "";
+            format_message(username, buffer, message);
 
-                    format_message(username, buffer, message);
-                    write(client_fds[i], message, strlen(message));
-                }
-            }
+            // send the received message to all the other clients
+            broadcast_message(message, client_index);
         }
 
         bzero(buffer, 255);
@@ -110,16 +111,10 @@ void *client_handler(void *args)
 
     printf("%s", message);
 
-    int i;
-    for (i = 0; i < client_number; ++i)
-    {
-        if (i != client_index)
-        {
-            write(client_fds[i], message, strlen(message));
-        }
-    }
+    broadcast_message(message, client_index);
 
     close(client_fds[client_index]);
+    client_fds[client_index] = -1;
 
     return NULL;
 }
